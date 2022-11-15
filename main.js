@@ -12,7 +12,7 @@ var Module = {
       scr.makeMove(Module.bodyMove.Uprim)
       scr.makeMove(Module.bodyMove.Bprim)
       
-      solutions = Module.findSolution(scr, Module.createSolved(), 0 , false);
+      solutions = Module.findSolution(scr, Module.createSolved(), 5 , false);
       for(j=0;j<solutions.size();j++){
         console.log(getSolutionString(solutions.get(j)))
       }

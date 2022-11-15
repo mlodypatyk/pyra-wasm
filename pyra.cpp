@@ -2,11 +2,23 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <unordered_map>
 #include <emscripten/bind.h>
 
-enum bodyMove {U, Uprim, R, Rprim, L, Lprim, B, Bprim, none}; // z fiutas
+static enum bodyMove {U, Uprim, R, Rprim, L, Lprim, B, Bprim, none}; // z fiutas
 
-bodyMove possibleMoves[8] = {U, Uprim, R, Rprim, L, Lprim, B, Bprim};
+static bodyMove possibleMoves[8] = {U, Uprim, R, Rprim, L, Lprim, B, Bprim};
+
+static std::map<std::string, bodyMove> inner_move = {
+    {"U", U},
+    {"U'", Uprim},
+    {"R", R},
+    {"R'", Rprim},
+    {"L", L},
+    {"L'", Lprim},
+    {"B", B},
+    {"B'", Bprim}
+};
 
 class Pyraminx{
     public:
@@ -42,6 +54,19 @@ class Pyraminx{
         }
         return true;
     }
+
+    int hash() {
+        int hash = 13;
+        for(int i=0;i<6;i++){
+            hash = hash * 31 + edges[i];
+            hash = hash * 2 + orientation[i];
+        }
+        for(int i=0;i<4;i++){
+            hash = hash * 17 + centers[i];
+        }
+        return hash;
+    }
+
     void makeMove (bodyMove move){
     switch(move){
         case U:
@@ -217,38 +242,44 @@ std::string getLetterMove(bodyMove move){
             return "B";break;
         case Bprim:
             return "B'";break;
+        default:
+            return "error";break;
     }
 }
 
 bodyMove getInnerMove(std::string move){
-    if(move=="U"){return U;};
-    if(move=="U'"){return Uprim;};
-    if(move=="R"){return R;};
-    if(move=="R'"){return Rprim;};
-    if(move=="L"){return L;};
-    if(move=="L'"){return Lprim;};
-    if(move=="B"){return B;};
-    if(move=="B'"){return Bprim;};
+    return inner_move(move);
 }
 
 bodyMove getInverse(bodyMove move){
     switch(move) {
         case U:
-            return Uprim;break;
+            return Uprim;
+            break;
         case Uprim:
-            return U;break;
+            return U;
+            break;
         case R:
-            return Rprim;break;
+            return Rprim;
+            break;
         case Rprim:
-            return R;break;
+            return R;
+            break;
         case L:
-            return Lprim;break;
+            return Lprim;
+            break;
         case Lprim:
-            return L;break;
+            return L;
+            break;
         case B:
-            return Bprim;break;
+            return Bprim;
+            break;
         case Bprim:
-            return B;break;
+            return B;
+            break;
+        default:
+            return none;
+            break;
     }
 }
 
@@ -259,6 +290,33 @@ std::vector<bodyMove> createSolution(std::vector<bodyMove> start, std::vector<bo
     }
     return result;
 }
+
+void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &startStates, 
+                                      std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &endStates, 
+                                      std::vector<std::vector<bodyMove>> &solutions,
+                                      std::chrono::duration<double> &elapsed) {
+    // Check
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::unordered_map<int, std::vector<std::vector<bodyMove>>> startMap;
+    for (std::pair<std::vector<bodyMove>, Pyraminx> state : startStates) {
+        int hash = state.second.hash();
+        if (startMap.find(hash) == startMap.end()) {
+            startMap[hash] = std::vector<std::vector<bodyMove>>();
+        } 
+        startMap[hash].push_back(state.first);
+    }
+
+    for (std::pair<std::vector<bodyMove>, Pyraminx> state : endStates) {
+        int hash = state.second.hash();
+        if (startMap.find(hash) != startMap.end()) {
+            for (std::vector<bodyMove> start : startMap[hash]) {
+                solutions.push_back(createSolution(start, state.first));
+            }
+        }
+    }
+    elapsed = elapsed + std::chrono::high_resolution_clock::now() - start;
+} 
 
 std::vector<std::vector<bodyMove>> findSolution(Pyraminx start, Pyraminx end, int tolerance, bool fullMatch){
     std::vector<std::vector<bodyMove>> solutions;
@@ -277,6 +335,8 @@ std::vector<std::vector<bodyMove>> findSolution(Pyraminx start, Pyraminx end, in
     endStates.push_back(lastState);
     //endPreviousStates.push_back(end);
     int moveCount = 0;
+    int cutoff = 12;
+    std::chrono::duration<double> elapsed = std::chrono::duration<double>::zero();
     while (tolerance + 1 > 0){
         // Ruch z przodu
         std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> startStatesNew;
@@ -305,18 +365,13 @@ std::vector<std::vector<bodyMove>> findSolution(Pyraminx start, Pyraminx end, in
         }
         startStates = startStatesNew;
         moveCount += 1;
-        // Check
-        for(int i = 0; i<startStates.size();i++){
-            for(int j =0; j<endStates.size();j++){
-                if((fullMatch && startStates.at(i).second == endStates.at(j).second)
-                || (!fullMatch && startStates.at(i).second.match(endStates.at(j).second))){
-                    solutions.push_back(createSolution(startStates.at(i).first, endStates.at(j).first));
-                }
-            }
-        }
+        
+        check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
+
         if(moveCount == 11 ){
             break; // Gods number
         }
+        
         if(!solutions.empty()){
             tolerance -=1;
         }
@@ -350,18 +405,12 @@ std::vector<std::vector<bodyMove>> findSolution(Pyraminx start, Pyraminx end, in
         endStates = endStatesNew;
         moveCount += 1;
         // Check 2
-        for(int i = 0; i<startStates.size();i++){
-            for(int j =0; j<endStates.size();j++){
-                if((fullMatch && startStates.at(i).second == endStates.at(j).second)
-                || (!fullMatch && startStates.at(i).second.match(endStates.at(j).second))){
-                    solutions.push_back(createSolution(startStates.at(i).first, endStates.at(j).first));
-                }
-            }
-        }
+        check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
         if(!solutions.empty()){
             tolerance -=1;
         }
     }
+    std::cout << "Elapsed time: " << elapsed.count() << "s" << std::endl;
     return solutions;
 }
 
@@ -377,16 +426,14 @@ int main() {
     solved.makeMove(Rprim);
     solved.makeMove(Bprim);
 
-    std::vector<std::vector<bodyMove>> solutions = findSolution(solved, createSolved(), 0, false);
- 
-        /*
-    for(int i =0;i<solutions.size();i++){
-        std::vector<bodyMove> solution = solutions.at(i);
-        for(int j=0;j<solution.size();j++){
-            std::cout << getLetterMove(solution.at(j));
+    std::vector<std::vector<bodyMove>> solutions = findSolution(solved, createSolved(), 2, false);
+    
+    for (std::vector<bodyMove> solution : solutions){
+        for (bodyMove move : solution){
+            std::cout << getLetterMove(move) << " ";
         }
         std::cout << "\n";
-    }*/
+    }
 }
 using namespace emscripten;
 
