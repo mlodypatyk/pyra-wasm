@@ -198,6 +198,8 @@ class Pyraminx{
             orientation[4] = !extra_orientation;
             break;
         }
+        default:
+            break;
     }
 }
 };
@@ -215,7 +217,7 @@ std::ostream &operator<<(std::ostream &os, const Pyraminx &pyra) {
     return os;
 }
 
-std::string getLetterMove(bodyMove &move){
+std::string getLetterMove(bodyMove move){ // emcc sie nie lubił z tym 
     return letter_move[move];
 }
 
@@ -233,6 +235,10 @@ std::vector<bodyMove> createSolution(std::vector<bodyMove> start, std::vector<bo
         result.push_back(getInverse(e));
     }
     return result;
+}
+
+Pyraminx createSolved() {
+    return Pyraminx();
 }
 
 void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &startStates, 
