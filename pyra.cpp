@@ -3,13 +3,14 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include <chrono>
 #include <emscripten/bind.h>
 
-static enum bodyMove {U, Uprim, R, Rprim, L, Lprim, B, Bprim, none}; // z fiutas
+enum bodyMove {U, Uprim, R, Rprim, L, Lprim, B, Bprim, none}; // z fiutas
 
 static bodyMove possibleMoves[8] = {U, Uprim, R, Rprim, L, Lprim, B, Bprim};
 
-static std::map<std::string, bodyMove> inner_move = {
+static std::unordered_map<std::string, bodyMove> inner_move = {
     {"U", U},
     {"U'", Uprim},
     {"R", R},
@@ -20,25 +21,57 @@ static std::map<std::string, bodyMove> inner_move = {
     {"B'", Bprim}
 };
 
+static std::unordered_map<bodyMove, std::string> letter_move = {
+    {U, "U"},
+    {Uprim, "U'"},
+    {R, "R"},
+    {Rprim, "R'"},
+    {L, "L"},
+    {Lprim, "L'"},
+    {B, "B"},
+    {Bprim, "B'"},
+    {none, "none"}
+};
+
+static std::unordered_map<bodyMove, bodyMove> inverse_move = {
+    {U, Uprim},
+    {Uprim, U},
+    {R, Rprim},
+    {Rprim, R},
+    {L, Lprim},
+    {Lprim, L},
+    {B, Bprim},
+    {Bprim, B}
+};
+
+void shift3(int &a, int &b, int &c) {
+    int tmp = a;
+    a = b;
+    b = c;
+    c = tmp;
+}
+
 class Pyraminx{
     public:
-    int edges[6]; // LF FR RB DF RD DL
-    bool orientation[6]; 
-    int centers[4]; // U R L B
+    int edges[6] = {0, 1, 2, 3, 4, 5}; // LF FR RB DF RD DL
+    bool orientation[6] = {true, true, true, true, true, true}; // true = up, false = down
+    int centers[4] = {0, 0, 0, 0}; // U R L B
+
+    Pyraminx() {}
+    Pyraminx(std::string initial_state) {
+        size_t pos = 0;
+        while ((pos = initial_state.find(" ")) != std::string::npos) {
+            this->makeMove(inner_move[initial_state.substr(0, pos)]);
+            initial_state.erase(0, pos + 1);
+        }
+        if (initial_state != "") {
+            this->makeMove(inner_move[initial_state]);
+        }
+    }
 
     bool operator==(const Pyraminx& other)
     {
-        for(int i=0;i<6;i++){
-            if(edges[i] != other.edges[i] || orientation[i] != other.orientation[i]){
-                return false;
-            }
-        }
-        for(int i=0;i<4;i++){
-            if(centers[i] != other.centers[i]){
-                return false;
-            }
-        }
-        return true;
+        return edges == other.edges && orientation == other.orientation && centers == other.centers;
     }
 
     bool match(const Pyraminx& other){
@@ -74,10 +107,7 @@ class Pyraminx{
             if(centers[0] != -1){
                 centers[0] = (centers[0] + 1)%3;
             }
-            int extra_edge = edges[0];
-            edges[0] = edges[1];
-            edges[1] = edges[2];
-            edges[2] = extra_edge;
+            shift3(edges[0], edges[1], edges[2]);
             bool extra_orientation = orientation[0];
             orientation[0] = orientation[1];
             orientation[1] = orientation[2];
@@ -89,10 +119,7 @@ class Pyraminx{
             if(centers[0] != -1){
                 centers[0] = (centers[0] - 1 + 3)%3;
             }
-            int extra_edge = edges[2];
-            edges[2] = edges[1];
-            edges[1] = edges[0];
-            edges[0] = extra_edge;
+            shift3(edges[2], edges[1], edges[0]);
             bool extra_orientation = orientation[2];
             orientation[2] = orientation[1];
             orientation[1] = orientation[0];
@@ -104,10 +131,7 @@ class Pyraminx{
             if(centers[1] != -1){
                 centers[1] = (centers[1] + 1)%3;
             }
-            int extra_edge = edges[1];
-            edges[1] = edges[3];
-            edges[3] = edges[4];
-            edges[4] = extra_edge;
+            shift3(edges[1], edges[3], edges[4]);
             bool extra_orientation = orientation[1];
             orientation[1] = orientation[3];
             orientation[3] = orientation[4];
@@ -119,10 +143,7 @@ class Pyraminx{
             if(centers[1] != -1){
                 centers[1] = (centers[1] - 1 + 3)%3;
             }
-            int extra_edge = edges[4];
-            edges[4] = edges[3];
-            edges[3] = edges[1];
-            edges[1] = extra_edge;
+            shift3(edges[4], edges[3], edges[1]);
             bool extra_orientation = orientation[4];
             orientation[4] = orientation[3];
             orientation[3] = orientation[1];
@@ -134,10 +155,7 @@ class Pyraminx{
             if(centers[2] != -1){
                 centers[2] = (centers[2] + 1)%3;
             }
-            int extra_edge = edges[0];
-            edges[0] = edges[5];
-            edges[5] = edges[3];
-            edges[3] = extra_edge;
+            shift3(edges[0], edges[5], edges[3]);
             bool extra_orientation = orientation[0];
             orientation[0] = orientation[5];
             orientation[5] = !orientation[3];
@@ -149,10 +167,7 @@ class Pyraminx{
             if(centers[2] != -1){
                 centers[2] = (centers[2] - 1 + 3)%3;
             }
-            int extra_edge = edges[0];
-            edges[0] = edges[3];
-            edges[3] = edges[5];
-            edges[5] = extra_edge;
+            shift3(edges[0], edges[3], edges[5]);
             bool extra_orientation = orientation[0];
             orientation[0] = !orientation[3];
             orientation[3] = !orientation[5];
@@ -164,10 +179,7 @@ class Pyraminx{
             if(centers[3] != -1){
                 centers[3] = (centers[3] + 1)%3;
             }
-            int extra_edge = edges[2];
-            edges[2] = edges[4];
-            edges[4] = edges[5];
-            edges[5] = extra_edge;
+            shift3(edges[2], edges[4], edges[5]);
             bool extra_orientation = orientation[2];
             orientation[2] = !orientation[4];
             orientation[4] = orientation[5];
@@ -179,10 +191,7 @@ class Pyraminx{
             if(centers[3] != -1){
                 centers[3] = (centers[3] - 1 + 3)%3;
             }
-            int extra_edge = edges[2];
-            edges[2] = edges[5];
-            edges[5] = edges[4];
-            edges[4] = extra_edge;
+            shift3(edges[2], edges[5], edges[4]);
             bool extra_orientation = orientation[2];
             orientation[2] = !orientation[5];
             orientation[5] = orientation[4];
@@ -193,100 +202,35 @@ class Pyraminx{
 }
 };
 
-
-
-
-Pyraminx createSolved(){
-    Pyraminx current;
-    for(int i=0;i<6;i++){
-        current.edges[i] = i;
-        current.orientation[i] = true;
-    }
-    for(int i=0;i<4;i++){
-        current.centers[i] = 0;
-    }
-
-    return current;
+std::ostream &operator<<(std::ostream &os, const Pyraminx &pyra) {
+    for (auto edge : pyra.edges) {
+        os << edge;
+    } os << "\n";
+    for (auto orient : pyra.orientation) {
+        os << orient;
+    } os << "\n";
+    for (auto center : pyra.centers) {
+        os << center;
+    } os << "\n";
+    return os;
 }
 
-void printState(Pyraminx *cube){
-    for(int i=0;i<6;i++){
-        std::cout << cube->edges[i];
-    }
-    std::cout << "\n";
-    for(int i=0;i<6;i++){
-        std::cout << cube->orientation[i];
-    }
-    std::cout << "\n";
-    for(int i=0;i<4;i++){
-        std::cout << cube->centers[i];
-    }
-    std::cout << "\n";
+std::string getLetterMove(bodyMove &move){
+    return letter_move[move];
 }
 
-std::string getLetterMove(bodyMove move){
-    switch(move) {
-        case U:
-            return "U";break;
-        case Uprim:
-            return "U'";break;
-        case R:
-            return "R";break;
-        case Rprim:
-            return "R'";break;
-        case L:
-            return "L";break;
-        case Lprim:
-            return "L'";break;
-        case B:
-            return "B";break;
-        case Bprim:
-            return "B'";break;
-        default:
-            return "error";break;
-    }
+bodyMove getInnerMove(std::string &move){
+    return inner_move[move];
 }
 
-bodyMove getInnerMove(std::string move){
-    return inner_move(move);
-}
-
-bodyMove getInverse(bodyMove move){
-    switch(move) {
-        case U:
-            return Uprim;
-            break;
-        case Uprim:
-            return U;
-            break;
-        case R:
-            return Rprim;
-            break;
-        case Rprim:
-            return R;
-            break;
-        case L:
-            return Lprim;
-            break;
-        case Lprim:
-            return L;
-            break;
-        case B:
-            return Bprim;
-            break;
-        case Bprim:
-            return B;
-            break;
-        default:
-            return none;
-            break;
-    }
+bodyMove getInverse(bodyMove &move){
+    return inverse_move[move];
 }
 
 std::vector<bodyMove> createSolution(std::vector<bodyMove> start, std::vector<bodyMove> end){
     std::vector<bodyMove> result = start;
-    for(int i = end.size()-1;i>=0;i--){
-        result.push_back(getInverse(end.at(i)));
+    for (auto e : end) {
+        result.push_back(getInverse(e));
     }
     return result;
 }
@@ -295,11 +239,10 @@ void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove
                                       std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &endStates, 
                                       std::vector<std::vector<bodyMove>> &solutions,
                                       std::chrono::duration<double> &elapsed) {
-    // Check
     auto start = std::chrono::high_resolution_clock::now();
 
     std::unordered_map<int, std::vector<std::vector<bodyMove>>> startMap;
-    for (std::pair<std::vector<bodyMove>, Pyraminx> state : startStates) {
+    for (auto state : startStates) {
         int hash = state.second.hash();
         if (startMap.find(hash) == startMap.end()) {
             startMap[hash] = std::vector<std::vector<bodyMove>>();
@@ -307,7 +250,7 @@ void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove
         startMap[hash].push_back(state.first);
     }
 
-    for (std::pair<std::vector<bodyMove>, Pyraminx> state : endStates) {
+    for (auto state : endStates) {
         int hash = state.second.hash();
         if (startMap.find(hash) != startMap.end()) {
             for (std::vector<bodyMove> start : startMap[hash]) {
@@ -316,117 +259,59 @@ void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove
         }
     }
     elapsed = elapsed + std::chrono::high_resolution_clock::now() - start;
-} 
+}
 
-std::vector<std::vector<bodyMove>> findSolution(Pyraminx start, Pyraminx end, int tolerance, bool fullMatch){
+void move(std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &states) {
+    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> temp;
+    for (auto state : states) {
+        for (auto possibleMove : possibleMoves) {
+            bodyMove lastMove = none;
+            if (state.first.size() > 0) {
+                lastMove = state.first.at(state.first.size() - 1);
+            }
+            if (lastMove != possibleMove && lastMove != getInverse(possibleMove)) {
+                std::vector<bodyMove> moves = state.first;
+                moves.push_back(possibleMove);
+                Pyraminx newState = state.second;
+                newState.makeMove(possibleMove);
+                temp.push_back(std::make_pair(moves, newState));
+            }
+        }
+    }
+    states = temp;
+}
+
+std::vector<std::vector<bodyMove>> findSolution(Pyraminx &start, Pyraminx end, int tolerance, bool fullMatch){
     std::vector<std::vector<bodyMove>> solutions;
-    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> startStates;
-    std::pair<std::vector<bodyMove>, Pyraminx> firstState;
-    //std::vector<Pyraminx> startPreviousStates;
-    firstState.first = std::vector<bodyMove>();
-    firstState.second = start;
-    startStates.push_back(firstState);
-    //startPreviousStates.push_back(start);
-    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> endStates;
-    //std::vector<Pyraminx> endPreviousStates;
-    std::pair<std::vector<bodyMove>, Pyraminx> lastState;
-    lastState.first = std::vector<bodyMove>();
-    lastState.second = end;
-    endStates.push_back(lastState);
-    //endPreviousStates.push_back(end);
+    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> startStates = {std::make_pair(std::vector<bodyMove>(), start)};
+    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> endStates = {std::make_pair(std::vector<bodyMove>(), end)};
+
     int moveCount = 0;
-    int cutoff = 12;
     std::chrono::duration<double> elapsed = std::chrono::duration<double>::zero();
     while (tolerance + 1 > 0){
         // Ruch z przodu
-        std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> startStatesNew;
-        for (int i = 0; i<startStates.size();i++){
-            for (int j=0;j<8;j++){
-                std::vector<bodyMove> previousMoves = startStates.at(i).first;
-                bodyMove lastMove;
-                if(previousMoves.size()==0){
-                    lastMove = none;
-                }else{
-                    lastMove = previousMoves.at(previousMoves.size()-1);
-                }
-                if(lastMove != possibleMoves[j] && lastMove != getInverse(possibleMoves[j])){
-                    Pyraminx newState = startStates.at(i).second;
-                    newState.makeMove(possibleMoves[j]);
-                    bool isIn = false;
-                    std::vector<bodyMove> moves = previousMoves;
-                    moves.push_back(possibleMoves[j]);
-                    std::pair<std::vector<bodyMove>, Pyraminx> currState;
-                    currState.first = moves;
-                    currState.second = newState;
-                    startStatesNew.push_back(currState);
-                    
-                }
-            }
-        }
-        startStates = startStatesNew;
-        moveCount += 1;
-        
+        move(startStates);
         check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
 
-        if(moveCount == 11 ){
-            break; // Gods number
-        }
-        
-        if(!solutions.empty()){
-            tolerance -=1;
-        }
-        if(tolerance < 0){
-            break;
-        }
-        // Ruch z tylu
-        std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> endStatesNew;
-        for (int i = 0; i<endStates.size();i++){
-            for (int j=0;j<8;j++){
-                std::vector<bodyMove> previousMoves = endStates.at(i).first;
-                bodyMove lastMove;
-                if(previousMoves.size()==0){
-                    lastMove = none;
-                }else{
-                    lastMove = previousMoves.at(previousMoves.size()-1);
-                }
-                if(lastMove != possibleMoves[j] && lastMove != getInverse(possibleMoves[j])){
-                    Pyraminx newState = endStates.at(i).second;
-                    newState.makeMove(possibleMoves[j]);
-                    std::vector<bodyMove> moves = previousMoves;
-                    moves.push_back(possibleMoves[j]);
-                    std::pair<std::vector<bodyMove>, Pyraminx> currState;
-                    currState.first = moves;
-                    currState.second = newState;
-                    endStatesNew.push_back(currState);
-                    
-                }
-            }
-        }
-        endStates = endStatesNew;
-        moveCount += 1;
-        // Check 2
+        ++moveCount;
+        if(moveCount == 11 ) break; // Gods number
+        if(!solutions.empty()) --tolerance;
+        if(tolerance < 0) break;
+
+        move(endStates);
         check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
-        if(!solutions.empty()){
-            tolerance -=1;
-        }
+        
+        ++moveCount;
+        if(!solutions.empty()) --tolerance;
     }
     std::cout << "Elapsed time: " << elapsed.count() << "s" << std::endl;
     return solutions;
 }
 
 int main() {
-    Pyraminx solved = createSolved();
-    solved.makeMove(U);
-    solved.makeMove(B); 
-    solved.makeMove(U);
-    solved.makeMove(Lprim);
-    solved.makeMove(Rprim);
-    solved.makeMove(L);
-    solved.makeMove(U);
-    solved.makeMove(Rprim);
-    solved.makeMove(Bprim);
+    Pyraminx solved("U B U L' R' L U R' B'");
 
-    std::vector<std::vector<bodyMove>> solutions = findSolution(solved, createSolved(), 2, false);
+    std::vector<std::vector<bodyMove>> solutions = findSolution(solved, Pyraminx(), 2, false);
     
     for (std::vector<bodyMove> solution : solutions){
         for (bodyMove move : solution){
