@@ -1,4 +1,3 @@
-
 var Module = {
     onRuntimeInitialized: function() {
       class Method{
@@ -25,11 +24,17 @@ var Module = {
           }
           console.log(this.methodJson)
 
-          //TODO: algs from source different than inline
           this.algsByHash = {}
           let algs = [{"moves": [], "steps": []}]
           for(const step of methodJson["steps"]){
             if(step["type"] == "alg"){
+              if(step["algs"]["source"] == "file"){
+                var xmlHTTP = new XMLHttpRequest()
+                xmlHTTP.open("GET", step["algs"]["filePath"], false)
+                xmlHTTP.send(null)
+                let newalgs = xmlHTTP.responseText.split('\r\n')
+                step["algs"]["algs"] = newalgs                
+              }
               let newAlgs = []
               for(const algOuter of algs){
                 for(const algInner of step["algs"]["algs"]){
@@ -108,46 +113,96 @@ var Module = {
               //console.log(endCase)
               let newSolution = 
               {
-                "moves": solution.moves.concat(endCase.moves),
+                "moves": reduceMoves(solution.moves.concat(endCase.moves)),
                 "steps": solution.steps.concat(endCase.steps),
               }
               all_solutions.push(newSolution)
             }
           }
+          all_solutions.sort(function compare(a, b) { return countRealMoves(a.moves) - countRealMoves(b.moves)})
+
           return all_solutions
 
         }
 
         
       }
-      lbl = new Method(LBL);
-      /*B' R' U' B' U' B R L' l' u'*/
-      scr = new Module.VectorMove()
-      scr.push_back(Module.move.Bprim)
-      scr.push_back(Module.move.Rprim)
-      scr.push_back(Module.move.Uprim)
-      scr.push_back(Module.move.Bprim)
-      scr.push_back(Module.move.Uprim)
-      scr.push_back(Module.move.B)
-      scr.push_back(Module.move.R)
-      scr.push_back(Module.move.Lprim)
+      lbl = new Method(L4E);
+      scr = createScrambleFromString("B' L B' R' B' L R B L U R'")
       solutions = lbl.findSolution(scr)
       console.log('SCRAMBLE: ' + getSolutionList(scr).join(' '))
       console.log('')
+      prevSolutions = []
+      printed = 0;
       for(const solution of solutions){
-        printSolution(solution)
-        console.log('')
+        if(!prevSolutions.includes(solution.moves.join(' ')) && printed < 20){
+          printSolution(solution)
+          console.log('')
+          printed++
+          prevSolutions.push(solution.moves.join(' '))
+        }
       }
     }
-  };
+  }
+
+  function createScrambleFromString(scr){
+    scr_vector = new Module.VectorMove()
+    for(const move of scr.split(' ')){
+      scr_vector.push_back(Module.getInnerMove(move))
+    }
+    return scr_vector
+  }
+  function reduceMoves(moves){
+    while(true){
+      change = false
+      newMoveList = []
+      //console.log(moves)
+      for(i=0;i<moves.length-1;i++){
+        if(moves[i][0] == moves[i+1][0] && moves[i][0] != '['){
+          change = true
+          if(moves[i].length == moves[i+1].length){ //ten sam ruch therefore inwersja
+            newMove = moves[i][0] + ((moves[i].length == 1) ? "'" : "")
+            newMoveList.push(newMove)
+          } // w innym casie sie skracaja ze sobą
+          i++ // skip
+          if(i == moves.length-2){
+            newMoveList.push(moves[moves.length-1])
+          } //last trzeba dodac nwt przy skipie
+        }else{
+          newMoveList.push(moves[i])
+          if(i == moves.length-2){
+            newMoveList.push(moves[moves.length-1])
+          }
+        }
+      }
+      moves = newMoveList
+      if(!change || moves.length == 1){
+        break
+      }
+    }
+    return moves
+  }
+  function countRealMoves(moves){
+    count = 0
+    for(const move of moves){
+      if(move[0] != '['){
+        count++
+      }
+    }
+    return count
+  }
 
   function printSolution(solution){
     //console.log(solution)
     console.log(solution.moves.join(' '));
+    endMoveCount = countRealMoves(solution.moves)
+    normalMoveCount = 0
     for(step of solution.steps){
       //console.log(step)
       console.log(step[0].join(' ') + ' ' + '//' + step[1])
+      normalMoveCount += countRealMoves(step[0])
     }
+    console.log(endMoveCount.toString() + ' moves (' + (normalMoveCount-endMoveCount).toString() + ' moves cancelled)')
   }
   function getSolutionList(solution){
     result = []
