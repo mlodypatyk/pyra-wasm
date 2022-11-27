@@ -6,11 +6,22 @@
 #include <chrono>
 #include <emscripten/bind.h>
 
-enum bodyMove {U, Uprim, R, Rprim, L, Lprim, B, Bprim, none}; // z fiutas
+enum move {U, Uprim, R, Rprim, L, Lprim, B, Bprim, /*rotacje*/ Ur, Urprim, Rr, Rrprim, Lr, Lrprim, Br, Brprim, none};
 
-static bodyMove possibleMoves[8] = {U, Uprim, R, Rprim, L, Lprim, B, Bprim};
+static move possibleMoves[8] = {U, Uprim, R, Rprim, L, Lprim, B, Bprim};
 
-static std::unordered_map<std::string, bodyMove> inner_move = {
+std::unordered_map<move, std::unordered_map<char, char>> rotations = {
+{Ur,     {{'R', 'L'}, {'L', 'B'}, {'B', 'R'}, {'U', 'U'}}},
+{Urprim, {{'R', 'B'}, {'B', 'L'}, {'L', 'R'}, {'U', 'U'}}},
+{Rr,     {{'L', 'U'}, {'U', 'B'}, {'B', 'L'}, {'R', 'R'}}},
+{Rrprim, {{'L', 'B'}, {'B', 'U'}, {'U', 'L'}, {'R', 'R'}}},
+{Lr,     {{'U', 'R'}, {'R', 'B'}, {'B', 'U'}, {'L', 'L'}}},
+{Lrprim, {{'R', 'U'}, {'U', 'B'}, {'B', 'R'}, {'L', 'L'}}},
+{Br,     {{'U', 'L'}, {'L', 'R'}, {'R', 'U'}, {'B', 'B'}}},
+{Brprim, {{'U', 'R'}, {'R', 'L'}, {'L', 'U'}, {'B', 'B'}}}
+};
+
+static std::unordered_map<std::string, move> inner_move = {
     {"U", U},
     {"U'", Uprim},
     {"R", R},
@@ -18,10 +29,18 @@ static std::unordered_map<std::string, bodyMove> inner_move = {
     {"L", L},
     {"L'", Lprim},
     {"B", B},
-    {"B'", Bprim}
+    {"B'", Bprim},
+    {"[u]", Ur},
+    {"[u']", Urprim},
+    {"[r]", Rr},
+    {"[r']", Rrprim},
+    {"[l]", Lr},
+    {"[l]", Lrprim},
+    {"[b]", Br},
+    {"[b']", Brprim}
 };
 
-static std::unordered_map<bodyMove, std::string> letter_move = {
+static std::unordered_map<move, std::string> letter_move = {
     {U, "U"},
     {Uprim, "U'"},
     {R, "R"},
@@ -30,10 +49,18 @@ static std::unordered_map<bodyMove, std::string> letter_move = {
     {Lprim, "L'"},
     {B, "B"},
     {Bprim, "B'"},
+    {Ur, "[u]"},
+    {Urprim, "[u']"},
+    {Rr, "[r]"},
+    {Rrprim, "[r']"},
+    {Lr, "[l]"},
+    {Lrprim, "[l']"},
+    {Br, "[b]"},
+    {Brprim, "[b']"},
     {none, "none"}
 };
 
-static std::unordered_map<bodyMove, bodyMove> inverse_move = {
+static std::unordered_map<move, move> inverse_move = {
     {U, Uprim},
     {Uprim, U},
     {R, Rprim},
@@ -41,8 +68,34 @@ static std::unordered_map<bodyMove, bodyMove> inverse_move = {
     {L, Lprim},
     {Lprim, L},
     {B, Bprim},
-    {Bprim, B}
+    {Bprim, B},
+    {Ur, Urprim},
+    {Urprim, Ur},
+    {Rr, Rrprim},
+    {Rrprim, Rr},
+    {Lr, Lrprim},
+    {Lrprim, Lr},
+    {Br, Brprim},
+    {Brprim, Br}
 };
+
+move rotateMove(move bodyMove, move rotation){
+    if(rotation == none){
+        return bodyMove;
+    }
+    std::string move = letter_move[bodyMove];
+    move[0] = rotations[rotation][move[0]];
+    return inner_move[move];
+
+}
+
+std::vector<move> rotateMoves(std::vector<move> bodyMoves, move rotation){
+    std::vector<move> newMoves;
+    for(auto move : bodyMoves){
+        newMoves.push_back(rotateMove(move, rotation));
+    }
+    return newMoves;
+}
 
 void shift3(int &a, int &b, int &c) {
     int tmp = a;
@@ -66,6 +119,19 @@ class Pyraminx{
         }
         if (initial_state != "") {
             this->makeMove(inner_move[initial_state]);
+        }
+    }
+    Pyraminx(std::vector<move> scr_moves){
+        for(auto e: scr_moves){
+            this->makeMove(e);
+        }
+    }
+    Pyraminx(std::vector<int> edgesToIgnore, std::vector<int> centersToIgnore){
+        for(auto i : edgesToIgnore){
+            this->edges[i] = -1;
+        }
+        for(auto i: centersToIgnore){
+            this->centers[i] = -1;
         }
     }
 
@@ -100,7 +166,7 @@ class Pyraminx{
         return hash;
     }
 
-    void makeMove (bodyMove move){
+    void makeMove (move move){
     switch(move){
         case U:
         {
@@ -217,22 +283,23 @@ std::ostream &operator<<(std::ostream &os, const Pyraminx &pyra) {
     return os;
 }
 
-std::string getLetterMove(bodyMove move){ // emcc sie nie lubił z tym 
+std::string getLetterMove(move move){ // emcc sie nie lubił z tym 
     return letter_move[move];
 }
 
-bodyMove getInnerMove(std::string &move){
+move getInnerMove(const std::string move){
     return inner_move[move];
 }
 
-bodyMove getInverse(bodyMove &move){
+move getInverse(move move){
     return inverse_move[move];
 }
 
-std::vector<bodyMove> createSolution(std::vector<bodyMove> start, std::vector<bodyMove> end){
-    std::vector<bodyMove> result = start;
-    for (auto e : end) {
-        result.push_back(getInverse(e));
+std::vector<move> createSolution(std::vector<move> start, std::vector<move> end){
+    std::vector<move> result = start;
+    for (int i = end.size()-1; i>=0;i--) {
+        // kto to kurwa jest marek mostowiak
+        result.push_back(getInverse(end.at(i)));
     }
     return result;
 }
@@ -241,42 +308,51 @@ Pyraminx createSolved() {
     return Pyraminx();
 }
 
-void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &startStates, 
-                                      std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &endStates, 
-                                      std::vector<std::vector<bodyMove>> &solutions,
+void check_if_solved(bool &fullMatch, std::vector<std::pair<std::vector<move>,Pyraminx>> &startStates, 
+                                      std::vector<std::pair<std::vector<move>,Pyraminx>> &endStates, 
+                                      std::vector<std::vector<move>> &solutions,
                                       std::chrono::duration<double> &elapsed) {
     auto start = std::chrono::high_resolution_clock::now();
+    if(fullMatch){
+        for(auto state1: startStates){
+            for(auto state2: endStates){
+                if(state1.second.match(state2.second)){
+                    solutions.push_back(createSolution(state1.first, state2.first));
+                }
+            }
+        }
+    }else{
+        std::unordered_map<int, std::vector<std::vector<move>>> startMap;
+        for (auto state : startStates) {
+            int hash = state.second.hash();
+            if (startMap.find(hash) == startMap.end()) {
+                startMap[hash] = std::vector<std::vector<move>>();
+            } 
+            startMap[hash].push_back(state.first);
+        }
 
-    std::unordered_map<int, std::vector<std::vector<bodyMove>>> startMap;
-    for (auto state : startStates) {
-        int hash = state.second.hash();
-        if (startMap.find(hash) == startMap.end()) {
-            startMap[hash] = std::vector<std::vector<bodyMove>>();
-        } 
-        startMap[hash].push_back(state.first);
-    }
-
-    for (auto state : endStates) {
-        int hash = state.second.hash();
-        if (startMap.find(hash) != startMap.end()) {
-            for (std::vector<bodyMove> start : startMap[hash]) {
-                solutions.push_back(createSolution(start, state.first));
+        for (auto state : endStates) {
+            int hash = state.second.hash();
+            if (startMap.find(hash) != startMap.end()) {
+                for (std::vector<move> start : startMap[hash]) {
+                    solutions.push_back(createSolution(start, state.first));
+                }
             }
         }
     }
     elapsed = elapsed + std::chrono::high_resolution_clock::now() - start;
 }
 
-void move(std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &states) {
-    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> temp;
+void moveStates(std::vector<std::pair<std::vector<move>,Pyraminx>> &states) {
+    std::vector<std::pair<std::vector<move>,Pyraminx>> temp;
     for (auto state : states) {
         for (auto possibleMove : possibleMoves) {
-            bodyMove lastMove = none;
+            move lastMove = none;
             if (state.first.size() > 0) {
                 lastMove = state.first.at(state.first.size() - 1);
             }
             if (lastMove != possibleMove && lastMove != getInverse(possibleMove)) {
-                std::vector<bodyMove> moves = state.first;
+                std::vector<move> moves = state.first;
                 moves.push_back(possibleMove);
                 Pyraminx newState = state.second;
                 newState.makeMove(possibleMove);
@@ -287,16 +363,41 @@ void move(std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> &states) {
     states = temp;
 }
 
-std::vector<std::vector<bodyMove>> findSolution(Pyraminx &start, Pyraminx end, int tolerance, bool fullMatch){
-    std::vector<std::vector<bodyMove>> solutions;
-    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> startStates = {std::make_pair(std::vector<bodyMove>(), start)};
-    std::vector<std::pair<std::vector<bodyMove>,Pyraminx>> endStates = {std::make_pair(std::vector<bodyMove>(), end)};
+std::vector<std::vector<move>> findSolution(std::vector<move> scramble, std::vector<Pyraminx> end, int tolerance, bool fullMatch){
+    std::vector<std::vector<move>> solutions;
+    std::vector<std::pair<std::vector<move>,Pyraminx>> startStates;
+    std::vector<std::pair<std::vector<move>,Pyraminx>> endStates;
+    for(auto state : end){
+        endStates.push_back(std::make_pair(std::vector<move>(), state));
+    }
+
+    Pyraminx start = Pyraminx(scramble);
+
+    if(fullMatch){
+        move firstRotation[] = {none, Rr, Rrprim, Lr};
+        move secondRotation[] = {none, Br, Brprim};
+        for(auto rot1 : firstRotation){
+            for(auto rot2: secondRotation){
+                std::vector<move> preMoves;
+                    if(rot1 != none){
+                    preMoves.push_back(rot1);
+                }
+                if(rot2 != none){
+                    preMoves.push_back(rot2);
+                }
+                Pyraminx current = Pyraminx(rotateMoves(rotateMoves(scramble, rot1), rot2));
+                startStates.push_back(std::make_pair(preMoves, current));
+            }
+        }
+    }else{
+        startStates.push_back(std::make_pair(std::vector<move>(), start));
+    }
 
     int moveCount = 0;
     std::chrono::duration<double> elapsed = std::chrono::duration<double>::zero();
     while (tolerance + 1 > 0){
         // Ruch z przodu
-        move(startStates);
+        moveStates(startStates);
         check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
 
         ++moveCount;
@@ -304,7 +405,7 @@ std::vector<std::vector<bodyMove>> findSolution(Pyraminx &start, Pyraminx end, i
         if(!solutions.empty()) --tolerance;
         if(tolerance < 0) break;
 
-        move(endStates);
+        moveStates(endStates);
         check_if_solved(fullMatch, startStates, endStates, solutions, elapsed);
         
         ++moveCount;
@@ -315,15 +416,30 @@ std::vector<std::vector<bodyMove>> findSolution(Pyraminx &start, Pyraminx end, i
 }
 
 int main() {
-    Pyraminx solved("U B U L' R' L U R' B'");
+    // U B U L' R' L U R' B'
+    //std::vector<move> scramble = {U, B, U, Lprim, Rprim, L, U, Rprim, Bprim};
+    //B' L B' U' L' B L R'
+    //std::vector<move> scramble = {Bprim, L, Bprim, Uprim, Lprim, B, L, Rprim};
+    /* B R' U L R B U' B' l r' u'*/
+    if(false){
+        std::vector<move> scramble = {B, Rprim, U, L, R, B, Uprim, Bprim};
 
-    std::vector<std::vector<bodyMove>> solutions = findSolution(solved, Pyraminx(), 2, false);
-    
-    for (std::vector<bodyMove> solution : solutions){
-        for (bodyMove move : solution){
-            std::cout << getLetterMove(move) << " ";
+
+        std::vector<Pyraminx> solved = {Pyraminx()};
+
+        Pyraminx V = Pyraminx(std::vector<int>{0,1,2,3}, std::vector<int>{0});
+
+        std::vector<Pyraminx> vTemplate = {V};
+
+        //std::vector<std::vector<move>> solutions = findSolution(scramble, solved, 0, false);
+        std::vector<std::vector<move>> solutions = findSolution(scramble, vTemplate, 2, true);
+        
+        for (std::vector<move> solution : solutions){
+            for (move move : solution){
+                std::cout << getLetterMove(move) << " ";
+            }
+            std::cout << "\n";
         }
-        std::cout << "\n";
     }
 }
 using namespace emscripten;
@@ -351,24 +467,44 @@ EMSCRIPTEN_BINDINGS(my_module) {
         .element(emscripten::index<4>())
         .element(emscripten::index<5>());
 
-    register_vector<bodyMove>("VectorBodyMove");
-    register_vector<std::vector<bodyMove>>("VectorVectorBodyMove");
+    register_vector<move>("VectorMove");
+    register_vector<std::vector<move>>("VectorVectorMove");
+    register_vector<Pyraminx>("VectorPyraminx");
+    register_vector<int>("VectorInt");
+
 
     class_<Pyraminx>("Pyraminx")
-    .function("makeMove", &Pyraminx::makeMove);
+    .constructor<>()
+    .constructor<std::string>()
+    .constructor<std::vector<int>, std::vector<int>>()
+    .function("makeMove", &Pyraminx::makeMove)
+    .function("hash", &Pyraminx::hash)
+    .function("equals", &Pyraminx::match);
 
-    enum_<bodyMove>("bodyMove")
-    .value("R", bodyMove::R)
-    .value("Rprim", bodyMove::Rprim)
-    .value("U", bodyMove::U)
-    .value("Uprim", bodyMove::Uprim)
-    .value("L", bodyMove::L)
-    .value("Lprim", bodyMove::Lprim)
-    .value("B", bodyMove::B)
-    .value("Bprim", bodyMove::Bprim)
-    .value("none", bodyMove::none);
+    enum_<move>("move")
+    .value("R", move::R)
+    .value("Rprim", move::Rprim)
+    .value("U", move::U)
+    .value("Uprim", move::Uprim)
+    .value("L", move::L)
+    .value("Lprim", move::Lprim)
+    .value("B", move::B)
+    .value("Bprim", move::Bprim)
+    .value("Rr", move::Rr)
+    .value("Rrprim", move::Rrprim)
+    .value("Ur", move::Ur)
+    .value("Urprim", move::Urprim)
+    .value("Lr", move::Lr)
+    .value("Lrprim", move::Lrprim)
+    .value("Br", move::Br)
+    .value("Brprim", move::Brprim)
+    .value("none", move::none);
 
     function("createSolved", &createSolved);
     function("findSolution", &findSolution);
     function("getLetterMove", &getLetterMove);
+    function("getInverse", &getInverse);
+    function("getInnerMove", &getInnerMove);
+    function("rotateMove", &rotateMove);
+
 }
