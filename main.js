@@ -32,7 +32,7 @@ var Module = {
                 var xmlHTTP = new XMLHttpRequest()
                 xmlHTTP.open("GET", step["algs"]["filePath"], false)
                 xmlHTTP.send(null)
-                let newalgs = xmlHTTP.responseText.split('\r\n')
+                let newalgs = xmlHTTP.responseText.replaceAll('\r\n', '\n').split('\n')
                 step["algs"]["algs"] = newalgs                
               }
               let newAlgs = []
@@ -68,7 +68,7 @@ var Module = {
               this.algsByHash[hash] = [alg]
             }
           }
-          //console.log(this.algsByHash)
+          console.log(this.algsByHash)
         }
         findSolution(scramble){
           //TODO: multiple finds maybe?
@@ -128,7 +128,7 @@ var Module = {
         
       }
       lbl = new Method(L4E);
-      scr = createScrambleFromString("B' L B' R' B' L R B L U R'")
+      scr = createScrambleFromString("B' U' B' L' B' U' R L'")
       solutions = lbl.findSolution(scr)
       console.log('SCRAMBLE: ' + getSolutionList(scr).join(' '))
       console.log('')
