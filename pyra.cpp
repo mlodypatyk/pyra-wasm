@@ -155,13 +155,13 @@ class Pyraminx{
     }
 
     int hash() {
-        int hash = 13;
+        int hash = 0;
         for(int i=0;i<6;i++){
-            hash = hash * 31 + edges[i];
+            hash = hash * 6 + edges[i];
             hash = hash * 2 + orientation[i];
         }
         for(int i=0;i<4;i++){
-            hash = hash * 17 + centers[i];
+            hash = hash * 4 + centers[i];
         }
         return hash;
     }
