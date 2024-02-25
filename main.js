@@ -20,7 +20,7 @@ class Method{
         step["template"] = templateList
       }
     }
-    console.log(this.methodJson)
+    //console.log(this.methodJson)
 
     this.algsByHash = {}
     let algs = [{"moves": [], "steps": []}]
@@ -30,7 +30,7 @@ class Method{
           var xmlHTTP = new XMLHttpRequest()
           xmlHTTP.open("GET", step["algs"]["filePath"], false)
           xmlHTTP.send(null)
-          let newalgs = xmlHTTP.responseText.replaceAll('\r\n', '\n').split('\n')
+          let newalgs = xmlHTTP.responseText.replaceAll('\r\n', '\n').split('\n').filter((alg) => alg[0] != '#')
           step["algs"]["algs"] = newalgs                
         }
         let newAlgs = []
@@ -66,9 +66,9 @@ class Method{
         this.algsByHash[hash] = [alg]
       }
     }
-    console.log(this.algsByHash)
+    //console.log(this.algsByHash)
   }
-  findSolution(scramble){
+  async findSolution(scramble){
     //TODO: multiple finds maybe?
     let solutions = []
     // "find" steps
@@ -106,15 +106,17 @@ class Method{
       let pseudoscr = rotated_scramble.concat(actual_solution).join(' ')
       let cube = new Module.Pyraminx(pseudoscr)
       let casehash = cube.hash()
-      for(const endCase of this.algsByHash[casehash]){
-        //console.log(solution)
-        //console.log(endCase)
-        let newSolution = 
-        {
-          "moves": reduceMoves(solution.moves.concat(endCase.moves)),
-          "steps": solution.steps.concat(endCase.steps),
+      if(casehash in this.algsByHash){ //we dont need every cringe ml4e case to be solvable, so we dont add all algs
+        for(const endCase of this.algsByHash[casehash]){
+          //console.log(solution)
+          //console.log(endCase)
+          let newSolution = 
+          {
+            "moves": reduceMoves(solution.moves.concat(endCase.moves)),
+            "steps": solution.steps.concat(endCase.steps),
+          }
+          all_solutions.push(newSolution)
         }
-        all_solutions.push(newSolution)
       }
     }
     all_solutions.sort(function compare(a, b) { return countRealMoves(a.moves) - countRealMoves(b.moves)})
@@ -128,25 +130,66 @@ class Method{
 
 var Module = {
     onRuntimeInitialized: function() {
-      l4e_m = new Method(L4E);
-      lbl_m = new Method(LBL)
+      methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL)]
       document.getElementById('search').addEventListener("click", async () => {
         scrText = document.getElementById('input').value
         scrClean = scrText.split(' ').filter((move) => ["R", "R'", "L", "L'", "U", "U'", "B", "B'"].includes(move)).join(' ')
         scr = createScrambleFromString(scrClean)
-        solutions = l4e_m.findSolution(scr)
-        prevSolutions = []
+        solutions = []
+        methods_done = 0;
+        
+        document.getElementById('solution').innerHTML = '0/' + methods.length + ' methods done';
+        for(const method of methods){
+          preFilteredSolutions = await method.findSolution(scr)
+          thisMethodDone = []
+          filteredSolutions = []
+          for(const solution of preFilteredSolutions){
+            pureSolution = unrotate(solution.moves)
+            if(!thisMethodDone.includes(pureSolution)){
+              filteredSolutions.push(solution)
+              thisMethodDone.push(pureSolution)
+            }
+          }
+          solutions.push(...filteredSolutions)
+          methods_done += 1
+          document.getElementById('solution').innerHTML = methods_done + '/' + methods.length + ' methods done';
+        }
+        solutions.sort((a, b) => {
+          if(countRealMoves(a.moves) < countRealMoves(b.moves)){
+            return true;
+          } else if(countRealMoves(a.moves) > countRealMoves(b.moves)){
+            return false
+          }
+          return a.steps.length < b.steps.length
+        })
+        solutions_sorted = {}
         printed = 0;
         finalText = ''
         for(const solution of solutions){
-          if(!prevSolutions.includes(solution.moves.join(' ')) && printed < 20){
-            finalText += printSolution(solution)
-            finalText += '<br>'
-            printed++
-            prevSolutions.push(solution.moves.join(' '))
+          unrotated_moves = unrotate(solution.moves)
+          if(unrotated_moves in solutions_sorted){
+            solutions_sorted[unrotated_moves].push(solution)
+          }else{ 
+            solutions_sorted[unrotated_moves] = [solution]
           }
         }
-        document.getElementById('solution').innerHTML = finalText})
+        keys = Object.keys(solutions_sorted)
+        keys.sort((a, b)=> a.split(' ').length < b.split(' '.length))
+        keys_printed = 0
+        for(const key of keys){
+          if(keys_printed < 20){
+            finalText += '<br>'
+            for(const solution of solutions_sorted[key]){
+              finalText += printSolution(solution)
+              finalText += '<br>'
+            }
+            finalText += '<hr>'
+          }
+          keys_printed += 1
+        }
+        document.getElementById('solution').innerHTML = finalText
+      
+      })
     }
   }
 
@@ -209,6 +252,7 @@ var Module = {
     }
     finalStr += 'solution: ' + solution.moves.join(' ') + '<br>'
     finalStr += endMoveCount.toString() + ' moves (' + (normalMoveCount-endMoveCount).toString() + ' moves cancelled)<br>'
+    //finalStr += 'unrotated ' + unrotate(solution.moves) + '<br>' 
     return finalStr
   }
   function getSolutionList(solution){
@@ -218,4 +262,31 @@ var Module = {
       result.push(Module.getLetterMove(solution.get(i)))
     }
     return result
+  }
+
+  function unrotate(moves){
+    rotationMatrix = {
+      '[b]': {'U': 'R', 'R': 'L', 'L': 'U', 'B': 'B'},
+      '[b\']': {'U': 'L', 'L': 'R', 'R': 'U', 'B': 'B'},
+      '[u\']': {'R': 'L', 'L': 'B', 'B': 'R', 'U': 'U'},
+      '[u\]': {'R': 'B', 'B': 'L', 'L': 'R', 'U': 'U'},
+      '[r\']': {'L': 'U', 'U': 'B', 'B': 'L', 'R': 'R'},
+      '[r]': {'L': 'B', 'B': 'U', 'U': 'L', 'R': 'R'},
+      '[l\']': {'U': 'R', 'R': 'B', 'B': 'U', 'L': 'L'},
+      '[l]': {'R': 'U', 'U': 'B', 'B': 'R', 'L': 'L'}
+      }
+    rotations = []
+    bodyMoves = []
+    for(const move of moves){
+      if(move[0] == '['){
+        rotations.push(move)
+      }else{
+        bodyMoves.push(move)
+      }
+    }
+    rotations.reverse()
+    for(const rotation of rotations){
+      bodyMoves = bodyMoves.map((move) => rotationMatrix[rotation][move[0]] + '\''.repeat(move.length-1))
+    }
+    return bodyMoves.join(' ')
   }
