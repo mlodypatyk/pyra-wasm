@@ -8,4 +8,4 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v14
 
       - name: Build wasm
-        run: emcc -lembind -o pyra.js pyra.cpp -s ALLOW_MEMORY_GROWTH
+        run: emcc -lembind -o ${{ github.workspace }}/pyra.js ${{ github.workspace }}/pyra.cpp -s ALLOW_MEMORY_GROWTH
