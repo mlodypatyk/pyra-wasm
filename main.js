@@ -68,7 +68,7 @@ class Method{
     }
     //console.log(this.algsByHash)
   }
-  async findSolution(scramble){
+  findSolution(scramble){
     //TODO: multiple finds maybe?
     let solutions = []
     // "find" steps
@@ -131,66 +131,77 @@ class Method{
 var Module = {
     onRuntimeInitialized: function() {
       methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL)]
-      document.getElementById('search').addEventListener("click", async () => {
+      document.getElementById('search').addEventListener("click", () => {
         scrText = document.getElementById('input').value
         scrClean = scrText.split(' ').filter((move) => ["R", "R'", "L", "L'", "U", "U'", "B", "B'"].includes(move)).join(' ')
         scr = createScrambleFromString(scrClean)
-        solutions = []
-        methods_done = 0;
-        
+        solutions = []        
         document.getElementById('solution').innerHTML = '0/' + methods.length + ' methods done';
-        for(const method of methods){
-          preFilteredSolutions = await method.findSolution(scr)
-          thisMethodDone = []
-          filteredSolutions = []
-          for(const solution of preFilteredSolutions){
-            pureSolution = unrotate(solution.moves)
-            if(!thisMethodDone.includes(pureSolution)){
-              filteredSolutions.push(solution)
-              thisMethodDone.push(pureSolution)
-            }
-          }
-          solutions.push(...filteredSolutions)
-          methods_done += 1
-          document.getElementById('solution').innerHTML = methods_done + '/' + methods.length + ' methods done';
-        }
-        solutions.sort((a, b) => {
-          if(countRealMoves(a.moves) < countRealMoves(b.moves)){
-            return true;
-          } else if(countRealMoves(a.moves) > countRealMoves(b.moves)){
-            return false
-          }
-          return a.steps.length < b.steps.length
-        })
-        solutions_sorted = {}
-        printed = 0;
-        finalText = ''
-        for(const solution of solutions){
-          unrotated_moves = unrotate(solution.moves)
-          if(unrotated_moves in solutions_sorted){
-            solutions_sorted[unrotated_moves].push(solution)
-          }else{ 
-            solutions_sorted[unrotated_moves] = [solution]
-          }
-        }
-        keys = Object.keys(solutions_sorted)
-        keys.sort((a, b)=> a.split(' ').length < b.split(' '.length))
-        keys_printed = 0
-        for(const key of keys){
-          if(keys_printed < 20){
-            finalText += '<br>'
-            for(const solution of solutions_sorted[key]){
-              finalText += printSolution(solution)
-              finalText += '<br>'
-            }
-            finalText += '<hr>'
-          }
-          keys_printed += 1
-        }
-        document.getElementById('solution').innerHTML = finalText
+        setTimeout(() => solveWithMethodN(0, solutions), 0)
+        
       
       })
     }
+  }
+
+  function solveWithMethodN(pos, solutions){
+    method = methods[pos]
+    preFilteredSolutions = method.findSolution(scr)
+    thisMethodDone = []
+    filteredSolutions = []
+    for(const solution of preFilteredSolutions){
+      pureSolution = unrotate(solution.moves)
+      if(!thisMethodDone.includes(pureSolution)){
+        filteredSolutions.push(solution)
+        thisMethodDone.push(pureSolution)
+      }
+    }
+    solutions.push(...filteredSolutions)
+    pos += 1
+    document.getElementById('solution').innerHTML = pos + '/' + methods.length + ' methods done';
+    if(pos == methods.length){
+      setTimeout(() => showSolutions(solutions), 0)
+    }else{
+      setTimeout(() => solveWithMethodN(pos, solutions), 0)
+    }
+      
+  }
+
+  function showSolutions(solutions){
+    solutions.sort((a, b) => {
+      if(countRealMoves(a.moves) < countRealMoves(b.moves)){
+        return true;
+      } else if(countRealMoves(a.moves) > countRealMoves(b.moves)){
+        return false
+      }
+      return a.steps.length < b.steps.length
+    })
+    solutions_sorted = {}
+    printed = 0;
+    finalText = ''
+    for(const solution of solutions){
+      unrotated_moves = unrotate(solution.moves)
+      if(unrotated_moves in solutions_sorted){
+        solutions_sorted[unrotated_moves].push(solution)
+      }else{ 
+        solutions_sorted[unrotated_moves] = [solution]
+      }
+    }
+    keys = Object.keys(solutions_sorted)
+    keys.sort((a, b)=> a.split(' ').length < b.split(' '.length))
+    keys_printed = 0
+    for(const key of keys){
+      if(keys_printed < 20){
+        finalText += '<br>'
+        for(const solution of solutions_sorted[key]){
+          finalText += printSolution(solution)
+          finalText += '<br>'
+        }
+        finalText += '<hr>'
+      }
+      keys_printed += 1
+    }
+    document.getElementById('solution').innerHTML = finalText
   }
 
   function createScrambleFromString(scr){
