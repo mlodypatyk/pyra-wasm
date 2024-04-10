@@ -167,42 +167,43 @@ var Module = {
       
   }
 
-  function showSolutions(solutions){
+  function showSolutions(solutions) {
     solutions.sort((a, b) => {
-      if(countRealMoves(a.moves) < countRealMoves(b.moves)){
-        return true;
-      } else if(countRealMoves(a.moves) > countRealMoves(b.moves)){
-        return false
-      }
-      return a.steps.length < b.steps.length
-    })
-    solutions_sorted = {}
-    printed = 0;
-    finalText = ''
-    for(const solution of solutions){
-      unrotated_moves = unrotate(solution.moves)
-      if(unrotated_moves in solutions_sorted){
-        solutions_sorted[unrotated_moves].push(solution)
-      }else{ 
-        solutions_sorted[unrotated_moves] = [solution]
-      }
-    }
-    keys = Object.keys(solutions_sorted)
-    keys.sort((a, b)=> a.split(' ').length < b.split(' '.length))
-    keys_printed = 0
-    for(const key of keys){
-      if(keys_printed < 20){
-        finalText += '<br>'
-        for(const solution of solutions_sorted[key]){
-          finalText += printSolution(solution)
-          finalText += '<br>'
+      // Poprawione porównanie, zwracanie wartości numerycznych
+      const diff = countRealMoves(a.moves) - countRealMoves(b.moves);
+      if (diff !== 0) return diff;
+      return a.steps.length - b.steps.length; // Mniejsza liczba kroków = wyżej
+    });
+
+    let solutions_sorted = {};
+    let finalText = '';
+    for (const solution of solutions) {
+        const unrotated_moves = unrotate(solution.moves);
+        if (unrotated_moves in solutions_sorted) {
+            solutions_sorted[unrotated_moves].push(solution);
+        } else { 
+            solutions_sorted[unrotated_moves] = [solution];
         }
-        finalText += '<hr>'
-      }
-      keys_printed += 1
     }
-    document.getElementById('solution').innerHTML = finalText
-  }
+
+    let keys = Object.keys(solutions_sorted);
+    keys.sort((a, b) => a.split(' ').length - b.split(' ').length); // Poprawka sortowania
+
+    let keys_printed = 0;
+    for (const key of keys) {
+        if (keys_printed < 20) { // Poprawka, aby cała pętla była w if
+            finalText += '<br>';
+            for (const solution of solutions_sorted[key]) {
+                finalText += printSolution(solution);
+                finalText += '<br>';
+            }
+        }
+        keys_printed += 1;
+    }
+
+    document.getElementById('solution').innerHTML = finalText;
+}
+
 
   function createScrambleFromString(scr){
     scr_vector = new Module.VectorMove()
@@ -262,9 +263,9 @@ var Module = {
       normalMoveCount += countRealMoves(step[0])
     }
     finalStr += 'solution: ' + solution.moves.join(' ') + '<br>'
-    finalStr += endMoveCount.toString() + ' moves (' + (normalMoveCount-endMoveCount).toString() + ' moves cancelled)<br>'
+    finalStr += endMoveCount.toString() + ' moves (' + (normalMoveCount-endMoveCount).toString() + ' moves cancelled)</br>'
     //finalStr += 'unrotated ' + unrotate(solution.moves) + '<br>' 
-    return finalStr
+    return '<button class="printed-solutions">' + finalStr + '</button>'
   }
   function getSolutionList(solution){
     result = []
@@ -301,3 +302,14 @@ var Module = {
     }
     return bodyMoves.join(' ')
   }
+
+  //Importing moves from textarea
+  document.addEventListener('DOMContentLoaded', (event) => {
+    document.getElementById("search").addEventListener("click", function() {
+        var userInput = document.getElementById("input").value;
+        var twistyPlayer = document.getElementById("scramble");
+        twistyPlayer.setAttribute("alg", userInput);
+    });
+});
+
+
