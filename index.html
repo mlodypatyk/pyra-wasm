@@ -4,6 +4,7 @@
         <title>pyra-wasm</title>
         <link rel="stylesheet" href="styles.css">
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <script src="methods/methods.js"></script>
         <script src="main.js"></script>
         <script src="pyra.js"></script>
@@ -23,10 +24,14 @@
                 back-view="top-right"
                 background="none"
                 control-panel="none"></twisty-player>
-                <br> 
-                <div style="display: flex;">  
+                <br>
+                <div style="display: flex;"> 
+                    <button class="fa fa-gear settings-button" id="settings"></button>
                     <textarea id = "input" class="text-area"></textarea>
                     <button id = "search" class="search-button">&#x1F50E;&#xFE0E;</button>
+                </div>
+                <div id="settings_menu" style="display: none">
+                    <checkbox>siur</checkbox>
                 </div>
             </div>
         </div>

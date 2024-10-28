@@ -128,24 +128,60 @@ class Method{
   
 }
 
+methods_enabled = []
+function toggleMethod(n){
+  methods_enabled[n] = !methods_enabled[n];
+}
+
+function updateTolerance(n){
+  new_moves = parseInt(document.getElementById('input-'+n).value)
+  if(new_moves > 0){
+    methods[n].methodJson.steps[0].tolerance = new_moves
+  }
+  
+}
+
 var Module = {
     onRuntimeInitialized: function() {
       methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL), new Method(L5EL), new Method(L5ER), new Method(L5EF), new Method(TL4EB)]
+      real_methods = methods
       document.getElementById('search').addEventListener("click", () => {
+        real_methods = []
+        for (index in methods_enabled){
+          if (methods_enabled[index]){
+            real_methods.push(methods[index])
+          }
+        }
         scrText = document.getElementById('input').value
         scrClean = scrText.split(' ').filter((move) => ["R", "R'", "L", "L'", "U", "U'", "B", "B'"].includes(move)).join(' ')
+        if(scrClean.length == 0) return;
         scr = createScrambleFromString(scrClean)
         solutions = []        
         document.getElementById('solution').innerHTML = '0/' + methods.length + ' methods done';
         setTimeout(() => solveWithMethodN(0, solutions), 0)
-        
-      
       })
+      settingsVisible = false;
+      document.getElementById('settings').addEventListener("click", () => {
+        settingsVisible = !settingsVisible;
+        document.getElementById("settings_menu").style.display = settingsVisible ? 'block' : 'none'
+      });
+      menu = ''
+      methods.forEach(element => {
+        menu += `<div class="method"><input type="checkbox" class="check" id="checkbox-${methods_enabled.length}" onClick="toggleMethod(${methods_enabled.length})" checked>`
+        menu += `<span>${element.methodJson.name}</span><span>tolerance</span>`
+        step1 = element.methodJson.steps[0];
+        if(step1.type == 'find'){
+            menu += `<input type="number" class="method-input" id="input-${methods_enabled.length}" value="${step1.tolerance}" onChange="updateTolerance(${methods_enabled.length})">`
+        }
+        methods_enabled.push(true);
+        menu += '</div>'
+      });
+      document.getElementById("settings_menu").innerHTML = menu;
     }
   }
 
   function solveWithMethodN(pos, solutions){
-    method = methods[pos]
+    method = real_methods[pos]
     preFilteredSolutions = method.findSolution(scr)
     thisMethodDone = []
     filteredSolutions = []
@@ -158,8 +194,8 @@ var Module = {
     }
     solutions.push(...filteredSolutions)
     pos += 1
-    document.getElementById('solution').innerHTML = pos + '/' + methods.length + ' methods done';
-    if(pos == methods.length){
+    document.getElementById('solution').innerHTML = pos + '/' + real_methods.length + ' methods done';
+    if(pos == real_methods.length){
       setTimeout(() => showSolutions(solutions), 0)
     }else{
       setTimeout(() => solveWithMethodN(pos, solutions), 0)

@@ -99,3 +99,31 @@
     border-color: green; 
     background-color: lightgray; 
   }
+
+.settings-button {
+    transition-delay: 0,15;
+    color: white;
+    background-color: green;
+    border-color: green;
+    border-style: solid;
+    border-radius: 8px;
+    width: 45px;
+    height: 46px;
+    margin-top: 8px;
+    font-size: 20px;
+}
+
+.method{
+    display: flex;
+    justify-content: space-between;
+}
+
+.method-input {
+    width: 10%;
+}
+
+.check {
+    accent-color: green;
+    transform: scale(1.4)
+}
+
