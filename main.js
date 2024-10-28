@@ -130,7 +130,7 @@ class Method{
 
 var Module = {
     onRuntimeInitialized: function() {
-      methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL)]
+      methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL), new Method(L5EL), new Method(L5ER), new Method(L5EF), new Method(TL4EB)]
       document.getElementById('search').addEventListener("click", () => {
         scrText = document.getElementById('input').value
         scrClean = scrText.split(' ').filter((move) => ["R", "R'", "L", "L'", "U", "U'", "B", "B'"].includes(move)).join(' ')
