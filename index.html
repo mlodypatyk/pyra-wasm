@@ -8,7 +8,7 @@
         <script src="methods/methods.js"></script>
         <script src="main.js"></script>
         <script src="pyra.js"></script>
-        <script src="https://cdn.cubing.net/js/cubing/twisty" type="module"></script>
+        <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     </head>
     <body>
         <header class="header">
@@ -18,21 +18,20 @@
         </header>
         
         <div class="input-layout">
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <twisty-player id="scramble"
+            <twisty-player id="scramble"
                 puzzle="pyraminx" 
                 back-view="top-right"
                 background="none"
                 control-panel="none"></twisty-player>
-                <br>
-                <div style="display: flex;"> 
+            <div class="search" style="display: flex; flex-direction: column; align-items: center;">
+                <div class="searchbar" style="display: flex;"> 
                     <button class="fa fa-gear settings-button" id="settings"></button>
                     <textarea id = "input" class="text-area"></textarea>
                     <button id = "search" class="search-button">&#x1F50E;&#xFE0E;</button>
                 </div>
-                <div id="settings_menu" style="display: none">
-                    <checkbox>siur</checkbox>
-                </div>
+            </div>
+            <div id="settings_menu" style="display: none">
+                <checkbox>siur</checkbox>
             </div>
         </div>
         <div class="solutions">

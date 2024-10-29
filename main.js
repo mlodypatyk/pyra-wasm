@@ -228,11 +228,10 @@ var Module = {
     let keys_printed = 0;
     for (const key of keys) {
         if (keys_printed < 20) { // Poprawka, aby cała pętla była w if
-            finalText += '<br>';
             for (const solution of solutions_sorted[key]) {
                 finalText += printSolution(solution);
-                finalText += '<br>';
             }
+            finalText += '<div style="height:3rem"></div>';
         }
         keys_printed += 1;
     }
