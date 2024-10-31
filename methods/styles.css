@@ -1,0 +1,229 @@
+/* General layout styling */
+.body {
+    padding-top: 3.125rem; /* 50px equivalent */
+}
+
+input[type='checkbox'] {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    vertical-align: middle;
+    outline: none;
+    font-size: inherit;
+    cursor: pointer;
+    width: 1.0em;
+    height: 1.0em;
+    background: white;
+    border-radius: 0.25em;
+    border: 0.125em solid #555;
+    position: relative;
+  }
+
+  input[type='checkbox']:checked {
+    background: green;
+  }
+  
+  input[type='checkbox']:checked:after {
+    content: "\2713";
+    position: absolute;
+    font-size: 90%;
+    left: 0.0625em;
+    top: -0.25em;
+  }
+
+/* Header styling */
+.header {
+    position: fixed;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    background-color: white;
+    border: 0.063rem solid rgb(151, 151, 151); /* 1px */
+    box-shadow: 0.063rem 0 0.125rem 0.125rem rgba(151, 151, 151, 0.5); /* 1px, 2px shadow */
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3.125rem; /* 50px */
+}
+
+/* Input layout styling */
+.input-layout {
+    position: fixed;
+    top: 3.125rem; /* 50px */
+    left: 0;
+    bottom: 0;
+    right: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding-right: 2.5rem; /* 40px */
+    padding-top: 1.125rem; /* 18px */
+}
+
+/* Solutions layout styling */
+.solutions {
+    position: relative;
+    top: 3.125rem; /* 50px */
+    left: 50%;
+    bottom: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 2.5rem; /* 40px */
+}
+
+/* Header logo styling */
+.header-logo {
+    font-family: 'Roboto', sans-serif;
+    color: green;
+    font-weight: bold;
+    font-size: 2.25rem; /* 36px */
+    margin: 0;
+    padding-top: 0.25rem; /* 4px */
+}
+
+/* Scramble image styling */
+.draw-scramble {
+    max-width: 90%;
+    margin-top: 0.313rem; /* 5px */
+}
+
+/* Search button styling */
+.search-button {
+    transition-delay: 0.15s;
+    color: white;
+    background-color: green;
+    border-color: green;
+    border-style: solid;
+    border-radius: 0.5rem; /* 8px */
+    width: 2.813rem; /* 45px */
+    height: 2.875rem; /* 46px */
+    margin-top: 0.5rem; /* 8px */
+    font-size: 1.25rem; /* 20px */
+}
+
+.search-button:hover {
+    background-color: rgb(0, 82, 0);
+    border-color: rgb(0, 82, 0);
+}
+
+/* Text area styling */
+.text-area {
+    resize: none;
+    font-size: 1rem; /* 16px */
+    width: 12.5rem; /* 200px */
+    height: 2.5rem; /* 40px */
+    margin: 0.5rem; /* 8px */
+    border-radius: 0.5rem; /* 8px */
+    border-style: solid;
+}
+
+/* Printed solutions styling */
+.printed-solutions {
+    background-color: white;
+    border: 0.125rem solid gray; /* 2px */
+    border-radius: 0.313rem; /* 5px */
+    padding: 0.625rem 1.25rem; /* 10px 20px */
+    font-size: 1rem; /* 16px */
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.printed-solutions:hover {
+    border-color: green;
+    background-color: lightgray;
+}
+
+.settings-button {
+    transition-delay: 0,15;
+    color: white;
+    background-color: green;
+    border-color: green;
+    border-style: solid;
+    border-radius: 8px;
+    width: 45px;
+    height: 46px;
+    margin-top: 8px;
+    font-size: 20px;
+}
+
+.method{
+    display: flex;
+    justify-content: space-between;
+}
+
+.method-input {
+    width: 10%;
+}
+
+.check {
+    accent-color: green;
+    transform: scale(1.4)
+}
+
+@media only screen and (max-device-width: 640px) {
+    .input-layout {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        padding-right: 0;
+        padding-top: 0;
+    }
+    twisty-player{
+        width: 100%;
+        height: 60rem;
+    }
+    .search {
+        width: 100%;
+        height: 18rem;
+    }
+    .searchbar{
+        width: 100%;
+        height: 100%;
+        font-size: 10rem;
+    }
+    #input{
+        width: 80%;
+        height: 100%;
+        font-size: 5rem;
+    }
+    .settings-button{
+        width: 20%;
+        height: 100%;
+        font-size: 18rem;
+    }
+    #search {
+        width: 20%;
+        height: 100%;
+        font-size: 10rem;
+    }
+    .solutions {
+        left: 0;
+        padding-left: 0;
+        text-align: center;
+        width: 100%;
+    }
+    #solution {
+        width: 100%;
+        font-size: 6rem;
+        padding-top: 1em;
+    }
+    .printed-solutions{
+        font-size: 3rem;
+    }
+    #settings_menu {
+        width: 80%;
+        font-size: 4rem;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 3rem;
+    }
+    .method-input {
+        font-size: 3rem;
+    }
+    .check {
+        font-size: 6em;
+    }
+
+}
