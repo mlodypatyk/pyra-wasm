@@ -143,7 +143,7 @@ function updateTolerance(n){
 
 var Module = {
     onRuntimeInitialized: function() {
-      methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL), new Method(L5EL), new Method(L5ER), new Method(L5EF), new Method(TL4EB)]
+      methods = [new Method(L4E), new Method(LBL), new Method(ML4ER), new Method(ML4EL), new Method(L5EL), new Method(L5ER), new Method(L5EF), new Method(TL4EB), new Method(TL4ER), new Method(PL4E), new Method(PML4E)]
       real_methods = methods
       document.getElementById('search').addEventListener("click", () => {
         real_methods = []
